@@ -14,7 +14,9 @@ EOF
 function breakfast()
 {
     target=$1
-    local variant=$2
+    local release=$2
+    local variant=$3
+	
     CUSTOM_DEVICES_ONLY="true"
     unset LUNCH_MENU_CHOICES
     add_lunch_combo full-eng
@@ -38,7 +40,7 @@ function breakfast()
             if [ -z "$variant" ]; then
                 variant="userdebug"
             fi
-            lunch twrp_$target-$variant
+            lunch twrp_$target-$release-$variant
         fi
     fi
     return $?
