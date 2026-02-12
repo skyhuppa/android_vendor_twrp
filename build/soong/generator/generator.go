@@ -1,3 +1,4 @@
+
 // Copyright 2015 Google Inc. All rights reserved.
 // Copyright (C) 2018,2021 The LineageOS Project
 //
@@ -20,7 +21,6 @@ import (
 	"strings"
 
 	"github.com/google/blueprint"
-	"github.com/google/blueprint/bootstrap"
 	"github.com/google/blueprint/proptools"
 
 	"android/soong/android"
@@ -145,14 +145,15 @@ func (g *Module) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 	tools := map[string]android.Path{}
 
 	if len(g.properties.Tools) > 0 {
-		ctx.VisitDirectDepsBlueprint(func(module blueprint.Module) {
+		ctx.VisitDirectDepsProxyAllowDisabled(func(proxy android.ModuleProxy) {
+			module := android.PrebuiltGetPreferred(ctx, proxy)
 			switch ctx.OtherModuleDependencyTag(module) {
 			case hostToolDepTag:
 				tool := ctx.OtherModuleName(module)
 				var path android.OptionalPath
 
 				if t, ok := module.(HostToolProvider); ok {
-					if !t.(android.Module).Enabled() {
+					if !t.(android.Module).Enabled(ctx) {
 						if ctx.Config().AllowMissingDependencies() {
 							ctx.AddMissingDependencies([]string{tool})
 						} else {
@@ -161,13 +162,6 @@ func (g *Module) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 						break
 					}
 					path = t.HostToolPath()
-				} else if t, ok := module.(bootstrap.GoBinaryTool); ok {
-					if s, err := filepath.Rel(android.PathForOutput(ctx).String(), t.InstallPath()); err == nil {
-						path = android.OptionalPathForPath(android.PathForOutput(ctx, s))
-					} else {
-						ctx.ModuleErrorf("cannot find path for %q: %v", tool, err)
-						break
-					}
 				} else {
 					ctx.ModuleErrorf("%q is not a host tool provider", tool)
 					break
@@ -210,12 +204,12 @@ func (g *Module) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 	if depRoot == "" {
 		depRoot = ctx.ModuleDir()
 	} else {
-		depRoot = twrpExpandVariables(ctx, depRoot)
+		depRoot = twrpromExpandVariables(ctx, depRoot)
 	}
 
 	// Glob dep_files property
 	for _, dep_file := range g.properties.Dep_files {
-		dep_file = twrpExpandVariables(ctx, dep_file)
+		dep_file = twrpromExpandVariables(ctx, dep_file)
 		globPath := filepath.Join(depRoot, dep_file)
 		paths, err := ctx.GlobWithDeps(globPath, nil)
 		if err != nil {
@@ -227,7 +221,7 @@ func (g *Module) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 		}
 	}
 
-	cmd := twrpExpandVariables(ctx, String(g.properties.Cmd))
+	cmd := twrpromExpandVariables(ctx, String(g.properties.Cmd))
 
 	rawCommand, err := android.Expand(cmd, func(name string) (string, error) {
 		switch name {
