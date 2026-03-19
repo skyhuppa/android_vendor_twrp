@@ -95,11 +95,11 @@ function pushboot() {
     adb reboot
 }
 
- function repopick() {
+function repopick() {
     set_stuff_for_environment
     T=$(gettop)
     $T/vendor/twrp/build/tools/repopick.py $@
- }
+}
 
 function aospremote()
 {
